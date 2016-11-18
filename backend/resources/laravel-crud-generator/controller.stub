@@ -1,0 +1,222 @@
+<?php
+
+namespace DummyNamespace;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Components\Helper\StringHelper;
+{{modelName}}
+
+class DummyClass extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        /*if (($ret = $this->validate($request, [
+                'type' => 'required|integer',
+            ], [], {{model}}::attributeLabels())) !== true
+        ) {
+            return $this->errorCode(5000, $ret);
+        }*/
+
+        $pageNo = intval($request->input('pageNo')) <= 1 ? 1 : intval($request->input('pageNo'));
+        $pageSize = intval($request->input('pageSize')) <= 1 ? DEFAULT_PAGE_SIZE : intval($request->input('pageSize'));
+        $search = $request->input('search');
+        $sort = $request->input('sort');
+        $filter = json_decode($request->input('filter'), true);
+
+        $data = $this->get{{model}}List($pageNo, $pageSize, $search, $sort, $filter);
+
+        return $this->success(null, $data['map'], $data['list']);
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function filter(Request $request)
+    {
+        return $this->success(
+            [
+                'field' => ['k1' => 'v1', 'k2' => 'v2'],
+            ]
+        );
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function view(Request $request)
+    {
+        $id = $request->input('id');
+        $model = {{model}}::findOrFail($id);
+
+        return $this->success($model);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        if (($ret = $this->validate($request, [
+                // 'username' => 'required|min:2|max:32|unique:users,username',
+            ], [], {{model}}::attributeLabels())) !== true
+        ) {
+            return $this->errorCode(5000, $ret);
+        }
+
+        if ({{model}}::create($request->all())) {
+            return $this->success();
+        }
+
+        return $this->errorCode(5000);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request)
+    {
+        if (($ret = $this->validate($request, [
+                'id' => 'required|integer',
+                'field' => 'required',
+                'value' => 'required',
+            ], [], array_merge({{model}}::attributeLabels()))) !== true) {
+            return $this->errorCode(5000, $ret);
+        }
+
+        $id = $request->input('id');
+        $field = $request->input('field');
+        $value = $request->input('value');
+
+        /*if ($field == 'name') {
+            if (($ret = $this->validate($request, [
+                    'value' => 'required|min:2|max:32|unique:brokers,name'
+                ], [], {{model}}::attributeLabels())) !== true) {
+                return $this->errorCode(5000, $ret);
+            }
+        } elseif ($field == 'brief_name') {
+            if (($ret = $this->validate($request, [
+                    'value' => 'required|min:2|max:32'
+                ], [], {{model}}::attributeLabels())) !== true) {
+                return $this->errorCode(5000, $ret);
+            }
+        }*/
+
+        $model = {{model}}::findOrFail($id);
+        $model->$field = $value;
+
+        if ($model->save()) {
+            return $this->success();
+        }
+
+        return $this->errorCode(5000);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function delete(Request $request)
+    {
+        $id = $request->input('id');
+        if ({{model}}::destroy($id)) {
+            return $this->success();
+        }
+
+        return $this->errorCode(5000);
+    }
+
+    /**
+     * Get {{model}} list based on search, filter, sort and page.
+     * @param int $pageNo
+     * @param int $pageSize
+     * @param string $search
+     * @param string $sort
+     * @param array $filter
+     * @return array
+     */
+    protected function get{{model}}List(
+        $pageNo = 1,
+        $pageSize = 10,
+        $search = null,
+        $sort = null,
+        $filter = null
+    ) {
+        $select = DB::table('{{table}}');
+
+        // search
+        if (!is_null($search) && trim($search)) {
+            $select->where(function ($select) use ($search) {
+                // $select->where('name', 'like', '%' . $search . '%');
+            });
+        }
+
+        // filter
+        if (!is_null($filter) && !empty($filter)) {
+            foreach ($filter as $k => $v) {
+                if (!StringHelper::isEmpty($v)) {
+                    $select->where($k, $v);
+                }
+            }
+        }
+
+        // sort
+        if ($sort) {
+            $sortType = 'asc';
+            if (strncmp($sort, '-', 1) === 0) {
+                $sortType = 'desc';
+            }
+            $sortAttr = str_replace('-', '', $sort);
+            $select->orderBy($sortAttr, $sortType);
+        } else {
+            // $select->orderBy('id', 'desc');
+        }
+
+        // page
+        $total = $select->count();
+        $offset = (intval($pageNo) - 1) * intval($pageSize);
+        $select->skip($offset)->take($pageSize);
+
+        $rows = $select->get();
+        $list = [];
+        foreach ($rows as $row) {
+            //$row['something'] = intval(row['field']);
+            $list[] = $row;
+        }
+        return [
+            'map' => [
+                'pageNo' => $pageNo,
+                'pageSize' => $pageSize,
+                'count' => $total,
+            ],
+            'list' => $list,
+        ];
+    }
+}

@@ -1,0 +1,46 @@
+<?php
+namespace App\Models;
+
+class DataHourlyDailyAf extends BaseModel
+{
+    const TYPE_ADVERTISER = 0;
+    const TYPE_BONUS = 1;
+    /**
+     * The database table used by the model.
+     *
+     * @var string
+     */
+    protected $table = 'data_hourly_daily_af';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [];
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * 获取类型标签
+     * @param null $key
+     * @return array|null
+     */
+    public static function getTypeLabels($key = null)
+    {
+        $data = [
+            self::TYPE_ADVERTISER => '广告收入',
+            self::TYPE_BONUS => '与媒体分红',
+        ];
+        if ($key !== null) {
+            return isset($data[$key]) ? $data[$key] : null;
+        } else {
+            return $data;
+        }
+    }
+}

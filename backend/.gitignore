@@ -1,0 +1,11 @@
+/vendor
+/.env
+/.env.localhost
+/public/js/
+!/resources/views/
+/.idea
+/.frontend/api4test/params-local_localhost.php
+/.frontend/api4test/params-local_test.biddingos.com.php
+/.settings/
+.buildpath
+.project
